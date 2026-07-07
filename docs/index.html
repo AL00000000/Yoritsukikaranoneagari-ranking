@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>寄付からの値上がり率ランキング | 東証プライム・スタンダード・グロース 各100銘柄</title>
+<style>
+:root {
+  --bg: #0a0f1c;
+  --panel: #101830;
+  --panel2: #0d1426;
+  --border: #1e2a48;
+  --text: #dbe4f5;
+  --muted: #7787a5;
+  --accent: #39c5cf;
+  --up: #ff5b6a;
+  --down: #4da3ff;
+  --new: #ffd166;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Hiragino Sans", "Yu Gothic UI", "Meiryo", sans-serif;
+  min-height: 100vh;
+}
+.wrap { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+header.site {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 20px;
+  padding: 8px 4px 20px;
+}
+header.site h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: .02em; }
+header.site h1 .dot { color: var(--accent); }
+header.site .sub { color: var(--muted); font-size: .85rem; }
+a.srcbtn {
+  margin-left: auto; align-self: center;
+  color: var(--accent); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel2); padding: 7px 14px;
+  font-size: .82rem; white-space: nowrap;
+}
+a.srcbtn:hover { border-color: var(--accent); }
+.mkttabs { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.mkttabs button {
+  background: var(--panel2); color: var(--muted);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 9px 20px; font-size: .9rem; cursor: pointer; font-weight: 600;
+}
+.mkttabs button:hover { color: var(--accent); border-color: var(--accent); }
+.mkttabs button.active {
+  background: linear-gradient(135deg, #1d8f98, #39c5cf);
+  color: #04121a; border-color: transparent;
+}
+.toolbar {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+}
+.toolbar label { color: var(--muted); font-size: .82rem; margin-right: 6px; }
+.toolbar select, .toolbar input {
+  background: var(--panel2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; font-size: .9rem; outline: none;
+}
+.toolbar select:focus, .toolbar input:focus { border-color: var(--accent); }
+.toolbar input { width: 220px; }
+.toolbar .spacer { flex: 1; }
+button.refresh {
+  background: linear-gradient(135deg, #1d8f98, #39c5cf);
+  color: #04121a; font-weight: 700; font-size: .9rem;
+  border: none; border-radius: 8px; padding: 9px 18px;
+  cursor: pointer; letter-spacing: .02em;
+}
+button.refresh:hover { filter: brightness(1.12); }
+button.refresh:disabled { opacity: .55; cursor: wait; filter: none; }
+.stat { color: var(--muted); font-size: .82rem; }
+.stat b { color: var(--text); font-weight: 600; }
+.banner {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center;
+  border: 1px solid var(--border); border-radius: 10px;
+  background: var(--panel2); padding: 9px 14px; margin-bottom: 10px;
+  font-size: .84rem; color: var(--muted);
+}
+.banner .live-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); margin-right: 7px;
+  box-shadow: 0 0 6px var(--accent);
+}
+.banner b { color: var(--text); }
+.banner.is-live { border-color: #1d8f98; }
+.banner .err { color: var(--up); }
+.banner .warn { color: var(--new); flex-basis: 100%; }
+.hint { color: var(--muted); font-size: .78rem; padding: 0 4px 10px; }
+.tablecard {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; overflow: auto; max-height: 78vh;
+}
+table { border-collapse: collapse; width: 100%; font-size: .855rem; white-space: nowrap; }
+thead th {
+  position: sticky; top: 0; z-index: 2;
+  background: #16223f; color: var(--muted);
+  font-weight: 600; font-size: .78rem;
+  padding: 10px 10px; text-align: right;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--accent); }
+thead th.tl { text-align: left; }
+thead th .arw { color: var(--accent); margin-left: 3px; }
+tbody td {
+  padding: 7px 10px; text-align: right;
+  border-bottom: 1px solid #141d36;
+  font-variant-numeric: tabular-nums;
+}
+tbody td.tl { text-align: left; }
+tbody tr:hover { background: #16223f66; }
+td.up { color: var(--up); }
+td.down { color: var(--down); }
+td.flat { color: var(--muted); }
+td.new { color: var(--new); font-weight: 700; }
+td.code a { color: var(--accent); text-decoration: none; }
+td.code a:hover { text-decoration: underline; }
+td.name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; }
+.value-cell { font-weight: 600; }
+footer {
+  margin-top: 18px; color: var(--muted); font-size: .76rem; line-height: 1.7;
+  padding: 0 4px;
+}
+footer a { color: var(--accent); }
+.loading { padding: 48px; text-align: center; color: var(--muted); }
+@media (max-width: 720px) {
+  .toolbar input { width: 100%; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="site">
+    <h1>寄付からの値上がり率ランキング<span class="dot">.</span></h1>
+    <span class="sub">東証プライム・スタンダード・グロース 各100銘柄 / 平日更新 / 前営業日比の順位変動付き</span>
+    <a class="srcbtn" href="https://github.com/AL00000000/Yoritsukikaranoneagari-ranking/archive/refs/heads/main.zip">⬇ ソースコード</a>
+  </header>
+
+  <div class="mkttabs" id="mktTabs"></div>
+
+  <div class="toolbar">
+    <button class="refresh" id="refreshBtn">🔄 最新データを取得</button>
+    <span><label>日付</label><select id="dateSel"></select></span>
+    <input id="q" type="search" placeholder="銘柄名・コードで絞り込み">
+    <span class="spacer"></span>
+    <span class="stat" id="stat"></span>
+  </div>
+
+  <div class="banner" id="banner">読み込み中…</div>
+
+  <div class="hint">列見出しをクリックで並び替え(もう一度クリックで昇順/降順切替)。「変動」= 前営業日の同市場ランキングからの順位変動。「最新データを取得」で場中の途中データも表示できます(表示のみ・保存はされません)。</div>
+
+  <div class="tablecard">
+    <table id="tbl">
+      <thead><tr id="headRow"></tr></thead>
+      <tbody id="body"><tr><td class="loading" colspan="9">読み込み中…</td></tr></tbody>
+    </table>
+  </div>
+
+  <footer>
+    データ取得元: <a href="https://finance.stockweather.co.jp/contents/ranking.aspx?mkt=1&cat=0000&type=2" target="_blank" rel="noopener">ストックウェザー(finance.stockweather.co.jp)</a> / 「寄付からの値上がり率」= 当日寄付値から現在値(大引け後は終値)までの上昇率 / 株価はディレイ配信 / 市場休場日は更新されません。<br>
+    本サイトのデータの正確性は保証されません。投資判断はご自身の責任で行ってください。
+  </footer>
+</div>
+
+<script>
+"use strict";
+const MARKETS = [
+  { key: "prime",    label: "東証プライム",    mkt: 1 },
+  { key: "standard", label: "東証スタンダード", mkt: 2 },
+  { key: "growth",   label: "東証グロース",    mkt: 3 },
+];
+const COLS = [
+  { key: "rank",       label: "順位",     num: s => s.rank },
+  { key: "move",       label: "変動",     num: s => s.is_new ? Infinity : (s.move_num ?? -Infinity), color: true },
+  { key: "prev_rank",  label: "前日順位", num: s => s.prev_rank === "" ? Infinity : +s.prev_rank },
+  { key: "code",       label: "コード",   num: null, left: true, code: true },
+  { key: "name",       label: "銘柄名",   num: null, left: true, cls: "name tl" },
+  { key: "price",      label: "現在値",   num: s => pnum(s.price) },
+  { key: "change",     label: "前日比",   num: s => pnum(s.change), color: true },
+  { key: "change_pct", label: "前日比%",  num: s => pnum(s.change_pct), color: true },
+  { key: "yori_pct",   label: "寄付からの値上率", num: s => pnum(s.yori_pct), cls: "value-cell" },
+];
+let market = "prime";      // 表示中の市場キー
+let payload = null;        // 表示中データ(保存 or ライブ)。{markets: {key: {stocks,...}}}
+let all = [];              // 表示中市場の銘柄配列
+let allDates = [];         // 保存済み日付(新しい順)
+let sortKey = "rank";
+let sortAsc = true;
+
+// 既知の不具合がある保存データ(日付 -> 説明)
+const DATA_NOTES = {};
+function noteFor(d) { return d && DATA_NOTES[d] ? DATA_NOTES[d] : null; }
+function warnHtml(d, isBase) {
+  const n = noteFor(d);
+  if (!n) return "";
+  return '<span class="warn">⚠ ' + (isBase
+    ? "比較対象(" + d + ")のデータに不具合があるため、「変動」「前日順位」は一部銘柄で不正確です: " + n
+    : "この日のデータには不具合があります: " + n) + "</span>";
+}
+
+// ---- StockWeather live fetch settings ----
+const PROXY = u => "https://corsproxy.io/?url=" + encodeURIComponent(u);
+// _cb: corsproxy.io が前回結果をキャッシュするため、取得毎にURLを変えて回避する(対象サイトは未知のパラメータを無視する)
+const SW_URL = (mkt, cb) => `https://finance.stockweather.co.jp/contents/ranking.aspx?mkt=${mkt}&cat=0000&type=2&_cb=${cb}`;
+// 値セル: <td>2,531.0</td> / <td><span class="red">+393.0</span> </td> /
+// <td><span class="gray">－</span></td> をすべて許容。[^<]* なのでセル境界(タグ)は越えられない。
+const C = g => `<td[^>]*>\\s*(?:<span[^>]*>)?(?<${g}>[^<]*)(?:<\\/span>)?\\s*<\\/td>`;
+const ROW_RE = new RegExp(
+  `<tr>\\s*<th>\\d+<\\/th>\\s*` +
+  `<td class="ll"><a href="\\.\\/stockdetail\\.aspx\\?cntcode=JP&skubun=\\d+` +
+  `&stkcode=(?<code>[0-9A-Z]+)&exctype=\\d+">(?<name>[^<]+)<\\/a>` +
+  `<br><span class="small">（[0-9A-Z]+）<\\/span><\\/td>\\s*` +
+  `<td class="ce"[^>]*>(?<market>[^<]*)<\\/td>\\s*` +
+  C("price") + `\\s*` + C("change") + `\\s*` + C("change_pct") + `\\s*` +
+  `<td class="focus">(?<yori_pct>[^<]*)<\\/td>`,
+  "g");
+const AS_OF_RE = /更新日時[：:]\s*(\d{4})\/(\d{2})\/(\d{2})\s*(\d{1,2}:\d{2})/;
+
+function pnum(v) {
+  if (v == null || v === "" || v === "－") return -Infinity;
+  const n = parseFloat(String(v).replace(/,/g, "").replace("+", ""));
+  return isNaN(n) ? -Infinity : n;
+}
+function cls(v) {
+  const s = String(v);
+  if (s.startsWith("+") || s.startsWith("↑")) return "up";
+  if (s.startsWith("-") || s.startsWith("↓")) return "down";
+  if (s === "→") return "flat";
+  if (s === "NEW") return "new";
+  return "";
+}
+
+function buildTabs() {
+  const box = document.getElementById("mktTabs");
+  box.innerHTML = "";
+  for (const m of MARKETS) {
+    const b = document.createElement("button");
+    b.textContent = m.label;
+    b.classList.toggle("active", m.key === market);
+    b.onclick = () => { market = m.key; applyMarket(); };
+    box.appendChild(b);
+  }
+}
+
+function buildHead() {
+  const tr = document.getElementById("headRow");
+  tr.innerHTML = "";
+  for (const c of COLS) {
+    const th = document.createElement("th");
+    th.textContent = c.label;
+    if (c.left) th.classList.add("tl");
+    if (c.key === sortKey) {
+      const a = document.createElement("span");
+      a.className = "arw";
+      a.textContent = sortAsc ? "▲" : "▼";
+      th.appendChild(a);
+    }
+    th.onclick = () => {
+      if (sortKey === c.key) { sortAsc = !sortAsc; }
+      else {
+        sortKey = c.key;
+        sortAsc = c.num ? (c.key === "rank" || c.key === "prev_rank") : true;
+      }
+      render();
+    };
+    tr.appendChild(th);
+  }
+}
+
+function render() {
+  buildHead();
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  let rows = all.filter(s =>
+    (!q || s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q)));
+
+  const col = COLS.find(c => c.key === sortKey);
+  rows.sort((a, b) => {
+    let r;
+    if (col.num) { r = col.num(a) - col.num(b); }
+    else { r = String(a[col.key]).localeCompare(String(b[col.key]), "ja"); }
+    if (r === 0) r = a.rank - b.rank;
+    return sortAsc ? r : -r;
+  });
+
+  const tb = document.getElementById("body");
+  tb.innerHTML = "";
+  const frag = document.createDocumentFragment();
+  for (const s of rows) {
+    const tr = document.createElement("tr");
+    for (const c of COLS) {
+      const v = s[c.key];
+      const td = document.createElement("td");
+      const klass = c.code ? "code tl" : (c.cls || (c.color ? cls(v) : ""));
+      if (klass) td.className = klass;
+      if (c.code) {
+        const a = document.createElement("a");
+        a.href = "https://finance.stockweather.co.jp/contents/stockdetail.aspx"
+          + "?cntcode=JP&skubun=1&stkcode=" + encodeURIComponent(v) + "&exctype=01";
+        a.target = "_blank"; a.rel = "noopener";
+        a.textContent = v;
+        td.appendChild(a);
+      } else {
+        td.textContent = v;
+      }
+      tr.appendChild(td);
+    }
+    frag.appendChild(tr);
+  }
+  tb.appendChild(frag);
+  document.getElementById("stat").innerHTML =
+    "表示 <b>" + rows.length + "</b> / " + all.length + " 銘柄";
+}
+
+function setBanner(html, live) {
+  const b = document.getElementById("banner");
+  b.innerHTML = html;
+  b.classList.toggle("is-live", !!live);
+}
+
+// 表示中市場のデータを payload から取り出して描画+バナー更新
+function applyMarket() {
+  buildTabs();
+  const mk = payload.markets[market] || { stocks: [] };
+  all = mk.stocks;
+  if (payload.live) {
+    setBanner('<span class="live-dot"></span>ライブデータ: <b>' +
+      (mk.as_of ? mk.as_of + " 時点" : "時刻不明") +
+      "</b>(ディレイ配信・保存されません) / 比較対象: <b>" +
+      (payload.baseDate || "なし") + "</b>" + warnHtml(payload.baseDate, true), true);
+  } else {
+    const asof = mk.as_of ? mk.as_of + " 時点" : payload.date + "(大引け後 16:30頃取得)";
+    setBanner("保存データ: <b>" + asof + "</b> / 比較対象: <b>" +
+      (payload.prev_date || "なし(初回)") + "</b>" +
+      warnHtml(payload.date, false) + warnHtml(payload.prev_date, true), false);
+  }
+  render();
+}
+
+async function loadDate(d) {
+  const res = await fetch("data/" + d + ".json", { cache: "no-cache" });
+  payload = await res.json();
+  applyMarket();
+}
+
+// ---- live refresh ----
+async function fetchLive(mkt, cb) {
+  const res = await fetch(PROXY(SW_URL(mkt, cb)), { cache: "no-store" });
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return await res.text();
+}
+
+function parseLive(html) {
+  const body = html.split("<tbody>").slice(1).join("<tbody>");
+  const rows = [];
+  ROW_RE.lastIndex = 0;
+  let m;
+  while ((m = ROW_RE.exec(body)) !== null) {
+    const d = {};
+    for (const [k, v] of Object.entries(m.groups)) d[k] = (v || "").trim();
+    rows.push(d);
+  }
+  return rows;
+}
+
+async function refreshLive() {
+  const btn = document.getElementById("refreshBtn");
+  btn.disabled = true;
+  const orig = btn.textContent;
+  try {
+    const cb = Date.now();  // 今回の取得共通のキャッシュバスタ
+    let done = 0;
+    btn.textContent = "取得中… 0/" + MARKETS.length;
+    const htmls = await Promise.all(MARKETS.map(async m => {
+      const h = await fetchLive(m.mkt, cb);
+      done++;
+      btn.textContent = "取得中… " + done + "/" + MARKETS.length;
+      return h;
+    }));
+
+    // データ時点・データ日付(最初に取れたもの)
+    let dataDate = null;
+    const liveMarkets = {};
+    MARKETS.forEach((mdef, i) => {
+      const html = htmls[i];
+      let asOf = null;
+      const am = html.match(AS_OF_RE);
+      if (am) {
+        const d = am[1] + "-" + am[2] + "-" + am[3];
+        asOf = d + " " + am[4];
+        if (!dataDate) dataDate = d;
+      }
+      let stocks = parseLive(html);
+      if (!stocks.length) throw new Error(mdef.label + " の行を抽出できませんでした(ページ構造変更の可能性)");
+      const seen = new Set();
+      stocks = stocks.filter(s => !seen.has(s.code) && seen.add(s.code));
+      stocks.forEach((s, j) => { s.rank = j + 1; });
+      liveMarkets[mdef.key] = { label: mdef.label, as_of: asOf, count: stocks.length, stocks };
+    });
+
+    // 比較対象: データ日付より前の直近保存日(市場ごとに同市場と比較)
+    const baseDate = allDates.find(d => !dataDate || d < dataDate) || null;
+    let baseMarkets = {};
+    if (baseDate) {
+      const res = await fetch("data/" + baseDate + ".json", { cache: "no-cache" });
+      baseMarkets = (await res.json()).markets || {};
+    }
+    for (const mdef of MARKETS) {
+      const base = Object.fromEntries(
+        ((baseMarkets[mdef.key] || {}).stocks || []).map(s => [s.code, s.rank]));
+      for (const s of liveMarkets[mdef.key].stocks) {
+        if (s.code in base) {
+          const diff = base[s.code] - s.rank;
+          s.move = diff > 0 ? "↑" + diff : diff < 0 ? "↓" + (-diff) : "→";
+          s.prev_rank = base[s.code];
+          s.move_num = diff;
+          s.is_new = false;
+        } else {
+          s.move = baseDate ? "NEW" : "";
+          s.prev_rank = "";
+          s.move_num = null;
+          s.is_new = !!baseDate;
+        }
+      }
+    }
+
+    payload = { live: true, baseDate, markets: liveMarkets };
+    applyMarket();
+  } catch (e) {
+    setBanner('<span class="err">最新データの取得に失敗しました: ' + e +
+      " / 時間をおいて再試行してください。</span>", false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+async function init() {
+  buildTabs();
+  const res = await fetch("data/index.json", { cache: "no-cache" });
+  const idx = await res.json();
+  allDates = idx.dates;
+  const sel = document.getElementById("dateSel");
+  sel.innerHTML = allDates.map(d => '<option value="' + d + '">' + d + "</option>").join("");
+  sel.onchange = () => loadDate(sel.value);
+  document.getElementById("q").oninput = render;
+  document.getElementById("refreshBtn").onclick = refreshLive;
+  if (allDates.length) await loadDate(allDates[0]);
+  else document.getElementById("body").innerHTML = '<tr><td class="loading" colspan="9">データがありません</td></tr>';
+}
+init().catch(e => {
+  document.getElementById("body").innerHTML =
+    '<tr><td class="loading" colspan="9">読み込みエラー: ' + e + "</td></tr>";
+});
+</script>
+</body>
+</html>
