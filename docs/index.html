@@ -137,7 +137,7 @@ footer a { color: var(--accent); }
 <div class="wrap">
   <header class="site">
     <h1>寄付からの値上がり率ランキング<span class="dot">.</span></h1>
-    <span class="sub">東証プライム・スタンダード・グロース 各100銘柄 / 平日更新 / 前営業日比の順位変動付き</span>
+    <span class="sub">東証プライム・スタンダード・グロース 各100銘柄 / 平日更新</span>
     <a class="srcbtn" href="https://github.com/AL00000000/Yoritsukikaranoneagari-ranking/archive/refs/heads/main.zip">⬇ ソースコード</a>
   </header>
 
@@ -153,12 +153,12 @@ footer a { color: var(--accent); }
 
   <div class="banner" id="banner">読み込み中…</div>
 
-  <div class="hint">列見出しをクリックで並び替え(もう一度クリックで昇順/降順切替)。「変動」= 前営業日の同市場ランキングからの順位変動。「最新データを取得」で場中の途中データも表示できます(表示のみ・保存はされません)。</div>
+  <div class="hint">列見出しをクリックで並び替え(もう一度クリックで昇順/降順切替)。「最新データを取得」で場中の途中データも表示できます(表示のみ・保存はされません)。</div>
 
   <div class="tablecard">
     <table id="tbl">
       <thead><tr id="headRow"></tr></thead>
-      <tbody id="body"><tr><td class="loading" colspan="9">読み込み中…</td></tr></tbody>
+      <tbody id="body"><tr><td class="loading" colspan="7">読み込み中…</td></tr></tbody>
     </table>
   </div>
 
@@ -177,8 +177,6 @@ const MARKETS = [
 ];
 const COLS = [
   { key: "rank",       label: "順位",     num: s => s.rank },
-  { key: "move",       label: "変動",     num: s => s.is_new ? Infinity : (s.move_num ?? -Infinity), color: true },
-  { key: "prev_rank",  label: "前日順位", num: s => s.prev_rank === "" ? Infinity : +s.prev_rank },
   { key: "code",       label: "コード",   num: null, left: true, code: true },
   { key: "name",       label: "銘柄名",   num: null, left: true, cls: "name tl" },
   { key: "price",      label: "現在値",   num: s => pnum(s.price) },
@@ -200,7 +198,7 @@ function warnHtml(d, isBase) {
   const n = noteFor(d);
   if (!n) return "";
   return '<span class="warn">⚠ ' + (isBase
-    ? "比較対象(" + d + ")のデータに不具合があるため、「変動」「前日順位」は一部銘柄で不正確です: " + n
+    ? "比較対象(" + d + ")のデータに不具合があります: " + n
     : "この日のデータには不具合があります: " + n) + "</span>";
 }
 
@@ -451,11 +449,11 @@ async function init() {
   document.getElementById("q").oninput = render;
   document.getElementById("refreshBtn").onclick = refreshLive;
   if (allDates.length) await loadDate(allDates[0]);
-  else document.getElementById("body").innerHTML = '<tr><td class="loading" colspan="9">データがありません</td></tr>';
+  else document.getElementById("body").innerHTML = '<tr><td class="loading" colspan="7">データがありません</td></tr>';
 }
 init().catch(e => {
   document.getElementById("body").innerHTML =
-    '<tr><td class="loading" colspan="9">読み込みエラー: ' + e + "</td></tr>";
+    '<tr><td class="loading" colspan="7">読み込みエラー: ' + e + "</td></tr>";
 });
 </script>
 </body>
