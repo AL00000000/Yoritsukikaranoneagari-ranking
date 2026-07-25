@@ -79,15 +79,8 @@ def main():
     OUTPUT.mkdir(exist_ok=True)
     DOCS_DATA.mkdir(parents=True, exist_ok=True)
 
-    # 前回(直近の過去ファイル)のデータを読み込み(市場別)
-    prev_files = sorted(p for p in HISTORY.glob("*.json") if p.stem < today)
-    prev_hist = {}
-    prev_date = None
-    if prev_files:
-        prev_date = prev_files[-1].stem
-        prev_hist = json.loads(prev_files[-1].read_text(encoding="utf-8"))
-
-    markets_out = {}
+    # 比較対象はデータ日付が確定しないと選べないので、先に全市場を取得する
+    fetched = []
     as_of_latest = None
     for key, label, mkt in MARKETS:
         page = fetch(mkt)
@@ -110,6 +103,30 @@ def main():
         for i, s in enumerate(stocks, 1):
             s["rank"] = i
 
+        fetched.append((key, label, as_of, stocks))
+        time.sleep(1.5)
+
+    # 休場日に走ると前営業日の内容がそのまま返るため、実行日ではなく
+    # ページが示すデータ日付で保存する。既に持っていれば何も書かない。
+    data_date = as_of_latest[:10] if as_of_latest else today
+    if data_date != today:
+        if (DOCS_DATA / f"{data_date}.json").is_file():
+            print(f"skip: {data_date} は取得済み(実行日 {today} は休場日などの空振り)")
+            return
+        print(f"注意: 実行日 {today} に対しデータは {data_date} 付。"
+              f"未取得の日なので {data_date} として保存する", file=sys.stderr)
+    today = data_date
+
+    # 前回(データ日付より前の直近保存分)を読み込み(市場別)
+    prev_files = sorted(p for p in HISTORY.glob("*.json") if p.stem < today)
+    prev_hist = {}
+    prev_date = None
+    if prev_files:
+        prev_date = prev_files[-1].stem
+        prev_hist = json.loads(prev_files[-1].read_text(encoding="utf-8"))
+
+    markets_out = {}
+    for key, label, as_of, stocks in fetched:
         # 前営業日の同市場ランキングと比較
         prev_data = {s["code"]: s["rank"]
                      for s in prev_hist.get(key, {}).get("stocks", [])}
@@ -133,7 +150,6 @@ def main():
             "count": len(stocks),
             "stocks": stocks,
         }
-        time.sleep(1.5)
 
     # 当日データを保存(同日再実行時は上書き)
     (HISTORY / f"{today}.json").write_text(
